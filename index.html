@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sistem Red Flag Kos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f6f4ef; --surface:#ffffff; --surface-2:#f0ede6; --ink:#1d1f1c; --muted:#5f625c; --line:#e2ded4;
+  --red:#c2362b; --red-soft:#fbe7e4; --amber:#b7791f; --amber-soft:#fdf1dc; --green:#2f7a4f; --green-soft:#e3f2e8;
+  --accent:#1f4d3a; --code-bg:#1b1e1b; --code-ink:#e8e6df;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#121412; --surface:#1a1d1a; --surface-2:#222622; --ink:#ecebe6; --muted:#a3a69f; --line:#2e332e;
+    --red:#ef6b5f; --red-soft:#3a1e1b; --amber:#e3a94f; --amber-soft:#3a2d17; --green:#6cc493; --green-soft:#17301f;
+    --accent:#8fd1ae; --code-bg:#0c0e0c; --code-ink:#e8e6df;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#121412; --surface:#1a1d1a; --surface-2:#222622; --ink:#ecebe6; --muted:#a3a69f; --line:#2e332e;
+  --red:#ef6b5f; --red-soft:#3a1e1b; --amber:#e3a94f; --amber-soft:#3a2d17; --green:#6cc493; --green-soft:#17301f;
+  --accent:#8fd1ae; --code-bg:#0c0e0c; --code-ink:#e8e6df;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Plus Jakarta Sans",system-ui,sans-serif;line-height:1.6;font-size:16px}
+.wrap{max-width:920px;margin:0 auto;padding:40px 16px 80px}
+header.hero{padding:8px 0 28px;border-bottom:2px solid var(--ink);margin-bottom:32px}
+.eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--red)}
+.dot{width:10px;height:10px;border-radius:50%;background:var(--red);box-shadow:0 0 0 4px var(--red-soft)}
+h1{font-size:clamp(30px,6vw,48px);line-height:1.08;margin:12px 0 14px;font-weight:800;letter-spacing:-.02em}
+.lead{font-size:18px;color:var(--muted);max-width:720px;margin:0}
+.lead strong{color:var(--ink)}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:24px}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+.stat b{display:block;font-size:24px;font-weight:800}
+.stat span{font-size:13px;color:var(--muted)}
+section{margin:44px 0}
+h2{font-size:24px;margin:0 0 6px;font-weight:800;letter-spacing:-.01em;display:flex;align-items:center;gap:12px}
+.num{display:inline-grid;place-items:center;width:32px;height:32px;border-radius:8px;background:var(--ink);color:var(--bg);font-size:15px;flex:none}
+h3{font-size:17px;margin:26px 0 8px}
+p.sub{color:var(--muted);margin:0 0 18px}
+.guards{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.guard{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px;border-top:4px solid var(--accent)}
+.guard h4{margin:0 0 6px;font-size:16px}
+.guard .stop{font-size:13px;color:var(--red);font-weight:600;margin-bottom:8px}
+.guard p{margin:0;font-size:14px;color:var(--muted)}
+.table-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:14px;min-width:520px}
+th,td{text-align:left;padding:10px 14px;border-bottom:1px solid var(--line)}
+th{background:var(--surface-2);font-weight:700;font-size:13px}
+tr:last-child td{border-bottom:none}
+td.mono{font-family:"JetBrains Mono",monospace;font-weight:500}
+.hl{color:var(--red);font-weight:700}
+.code{position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:12px;margin:8px 0 18px;overflow:hidden}
+.code .label{display:flex;justify-content:space-between;align-items:center;padding:8px 14px;font-size:12px;color:#a9ada5;border-bottom:1px solid #2c302c}
+.code pre{margin:0;padding:14px;overflow-x:auto;font-family:"JetBrains Mono",monospace;font-size:13px;line-height:1.55;white-space:pre}
+.copy{background:#2c302c;color:#e8e6df;border:0;border-radius:6px;padding:4px 10px;font:inherit;font-size:12px;cursor:pointer}
+.copy:hover{background:#3a3f3a}
+.status-demo{display:flex;flex-wrap:wrap;gap:10px;margin:6px 0 18px}
+.pill{padding:6px 12px;border-radius:999px;font-size:13px;font-weight:700}
+.pill.r{background:var(--red-soft);color:var(--red)}
+.pill.a{background:var(--amber-soft);color:var(--amber)}
+.pill.g{background:var(--green-soft);color:var(--green)}
+ol.setup{padding-left:20px;margin:0}
+ol.setup li{margin-bottom:8px}
+.steps{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;counter-reset:s}
+.step{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px;position:relative}
+.step::before{counter-increment:s;content:counter(s);display:grid;place-items:center;width:30px;height:30px;border-radius:50%;background:var(--accent);color:var(--bg);font-weight:800;margin-bottom:10px}
+.step h4{margin:0 0 6px;font-size:15px}
+.step p{margin:0;font-size:14px;color:var(--muted)}
+.step.gate{border:2px solid var(--red)}
+.step.gate::after{content:"GERBANG";position:absolute;top:14px;right:14px;font-size:11px;font-weight:800;color:var(--red);letter-spacing:.06em}
+.callout{border-left:4px solid var(--amber);background:var(--amber-soft);padding:14px 16px;border-radius:0 10px 10px 0;margin-top:18px;font-size:15px}
+.callout.red{border-color:var(--red);background:var(--red-soft)}
+.msg{background:var(--surface);border:1px solid var(--line);border-radius:16px 16px 16px 4px;padding:14px 16px;max-width:560px;font-size:15px}
+.msg small{display:block;color:var(--muted);margin-bottom:4px;font-size:12px}
+footer{margin-top:56px;padding-top:18px;border-top:1px solid var(--line);color:var(--muted);font-size:13px}
+@media (max-width:760px){
+  .guards,.steps{grid-template-columns:1fr}
+  .stats{grid-template-columns:1fr 1fr 1fr}
+  .stat b{font-size:20px}
+}
+@media (max-width:420px){ .stats{grid-template-columns:1fr} }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <div class="eyebrow"><span class="dot"></span>Manajemen Kos 15 Kamar</div>
+  <h1>Sistem Red Flag Telat Bayar 3 Hari</h1>
+  <p class="lead"><strong>Satu Google Sheet, lima menit per hari.</strong> Penghuni yang lewat 3 hari dari jatuh tempo dan belum bayar otomatis ditandai merah. Pesan red flag hanya bisa dikirim setelah mutasi rekening hari itu dicek, jadi penghuni yang sudah lunas tidak mungkin ikut menerimanya.</p>
+  <div class="stats">
+    <div class="stat"><b>Rp0</b><span>biaya alat</span></div>
+    <div class="stat"><b>5 menit</b><span>per hari</span></div>
+    <div class="stat"><b>0</b><span>salah sasaran</span></div>
+  </div>
+</header>
+
+<section>
+  <h2>Tiga pengaman dalam satu alur</h2>
+  <p class="sub">Masing-masing menutup satu celah kesalahan. Ketiganya wajib jalan bersamaan.</p>
+  <div class="guards">
+    <div class="guard">
+      <h4>Kode unik nominal</h4>
+      <div class="stop">Mencegah: uang masuk tak dikenali</div>
+      <p>Tiga digit terakhir nominal transfer sama dengan nomor kamar.</p>
+    </div>
+    <div class="guard">
+      <h4>Status dihitung rumus</h4>
+      <div class="stop">Mencegah: salah ketik atau salah baris</div>
+      <p>Status dihitung dari riwayat pembayaran, tidak pernah diketik tangan.</p>
+    </div>
+    <div class="guard">
+      <h4>Gerbang verifikasi harian</h4>
+      <div class="stop">Mencegah: kirim pakai data kemarin</div>
+      <p>Tombol kirim baru muncul setelah mutasi hari ini dicek.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2><span class="num">1</span>Aturan pembayaran untuk penghuni</h2>
+  <p class="sub">Tanggal jatuh tempo tetap mengikuti tanggal masuk masing-masing. Yang diseragamkan hanya cara transfernya.</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Kamar</th><th>Sewa dasar</th><th>Nominal transfer</th></tr></thead>
+      <tbody>
+        <tr><td>01</td><td class="mono">Rp1.500.000</td><td class="mono">Rp1.500.<span class="hl">001</span></td></tr>
+        <tr><td>03</td><td class="mono">Rp1.500.000</td><td class="mono">Rp1.500.<span class="hl">003</span></td></tr>
+        <tr><td>12</td><td class="mono">Rp1.750.000</td><td class="mono">Rp1.750.<span class="hl">012</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="callout">Masukkan aturan ini ke daftar do &amp; don't kos dan sampaikan saat penghuni baru masuk.</div>
+</section>
+
+<section>
+  <h2><span class="num">2</span>Isi Google Sheet</h2>
+
+  <h3>Sheet "Log": riwayat pembayaran</h3>
+  <p class="sub">Hanya ditambah, tidak pernah diedit. Paling aman diisi lewat Google Form dengan kolom Kamar berupa dropdown.</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>A: Tanggal bayar</th><th>B: Kamar</th><th>C: Periode yang dibayar</th><th>D: Nominal</th><th>E: Bukti</th></tr></thead>
+      <tbody><tr><td>19 Okt 2026</td><td>03</td><td>21 Okt 2026</td><td class="mono">1.500.003</td><td>link foto</td></tr></tbody>
+    </table>
+  </div>
+  <p class="sub" style="margin-top:10px">Kolom C = tanggal jatuh tempo yang dilunasi oleh pembayaran tersebut.</p>
+
+  <h3>Sheet "Master": dihitung otomatis</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>A: Kamar</th><th>B: Nama</th><th>C: No WA</th><th>D: Jatuh tempo berikutnya</th><th>E: Hari telat</th><th>F: Status</th><th>G: Kirim</th></tr></thead>
+      <tbody><tr><td>03</td><td>Rina</td><td class="mono">6281234567890</td><td>rumus</td><td>rumus</td><td>rumus</td><td>rumus</td></tr></tbody>
+    </table>
+  </div>
+  <p class="sub" style="margin-top:10px">Nomor WA diawali 62, tanpa 0 dan tanpa spasi. <strong>Sel H1</strong> berisi tanggal terakhir mutasi rekening dicek.</p>
+
+  <div class="code"><div class="label">Kolom D: jatuh tempo berikutnya<button class="copy">Salin</button></div>
+<pre>=EDATE(MAXIFS(Log!C:C, Log!B:B, A2), 1)</pre></div>
+
+  <div class="code"><div class="label">Kolom E: jumlah hari telat<button class="copy">Salin</button></div>
+<pre>=MAX(0, TODAY()-D2)</pre></div>
+
+  <div class="code"><div class="label">Kolom F: status<button class="copy">Salin</button></div>
+<pre>=IF(E2&gt;=3, "RED FLAG", IF(E2&gt;=1, "Lewat jatuh tempo", "Aman"))</pre></div>
+
+  <div class="status-demo">
+    <span class="pill g">Aman</span>
+    <span class="pill a">Lewat jatuh tempo (hari 1 sampai 2)</span>
+    <span class="pill r">RED FLAG (hari 3 ke atas)</span>
+  </div>
+
+  <div class="code"><div class="label">Kolom G: tombol kirim, hanya muncul jika H1 = hari ini<button class="copy">Salin</button></div>
+<pre>=IF(AND($H$1=TODAY(), F2="RED FLAG"),
+  HYPERLINK("https://wa.me/"&amp;C2&amp;"?text="&amp;ENCODEURL("Halo "&amp;B2&amp;", per pengecekan mutasi hari ini "&amp;TEXT(TODAY(),"dd mmm yyyy")&amp;", pembayaran sewa kamar "&amp;A2&amp;" untuk jatuh tempo "&amp;TEXT(D2,"dd mmm yyyy")&amp;" belum kami terima ("&amp;E2&amp;" hari). Mohon segera diselesaikan. Jika sudah transfer, mohon kirim bukti transfernya. Terima kasih."), "Kirim Red Flag"),
+  "")</pre></div>
+
+  <h3>Pengaturan sekali di awal</h3>
+  <ol class="setup">
+    <li>Protect sheet Master supaya rumus tidak bisa tertimpa.</li>
+    <li>Conditional formatting kolom F: merah untuk "RED FLAG", kuning untuk "Lewat jatuh tempo".</li>
+    <li>Untuk setiap penghuni, isi satu baris awal di Log dengan periode = satu bulan sebelum jatuh tempo pertamanya.</li>
+    <li>Penghuni yang masuk tanggal 29, 30, atau 31: sepakati jatuh tempo tanggal 28 supaya tidak bergeser di bulan pendek.</li>
+  </ol>
+</section>
+
+<section>
+  <h2><span class="num">3</span>Rutinitas setiap pagi</h2>
+  <p class="sub">Urutan ini tidak boleh dibalik. Langkah 3 adalah gerbang yang membuka tombol kirim.</p>
+  <div class="steps">
+    <div class="step"><h4>Buka mutasi</h4><p>Lihat semua transfer masuk sejak pengecekan terakhir.</p></div>
+    <div class="step"><h4>Catat ke Log</h4><p>Cocokkan tiga digit terakhir nominal dengan kamar, isi lewat Google Form.</p></div>
+    <div class="step gate"><h4>Isi H1</h4><p>Ketik tanggal hari ini. Tanpa ini, kolom G kosong untuk semua kamar.</p></div>
+    <div class="step"><h4>Kirim red flag</h4><p>Klik tombol yang muncul, lalu tekan kirim di WhatsApp.</p></div>
+  </div>
+  <div class="callout">Dengan 15 penghuni, pada kebanyakan hari tidak ada red flag sama sekali.</div>
+</section>
+
+<section>
+  <h2><span class="num">4</span>Kalau penghuni ternyata sudah bayar</h2>
+  <p class="sub">Hanya terjadi jika penghuni transfer setelah pengecekan pagi. Isi pesan dirancang tetap faktual, bukan menuduh.</p>
+  <div class="msg"><small>Contoh pesan red flag</small>Halo Rina, per pengecekan mutasi hari ini 24 Okt 2026, pembayaran sewa kamar 03 untuk jatuh tempo 21 Okt 2026 belum kami terima (3 hari). Mohon segera diselesaikan. Jika sudah transfer, mohon kirim bukti transfernya. Terima kasih.</div>
+  <div class="callout red">Begitu bukti diterima, cukup catat ke Log. Status kamar itu langsung kembali "Aman".</div>
+</section>
+
+<footer>Sistem Red Flag Telat Bayar 3 Hari · Google Sheet, Google Form, WhatsApp · <a href="https://github.com/alimatulrahim-cloud/sistem-reminder-kos" style="color:inherit">Repo GitHub</a></footer>
+</div>
+
+<script>
+document.querySelectorAll('.copy').forEach(function(btn){
+  btn.addEventListener('click', function(){
+    var text = btn.closest('.code').querySelector('pre').innerText;
+    var done = function(){ btn.textContent='Tersalin'; setTimeout(function(){btn.textContent='Salin'},1500); };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done).catch(function(){ fallback(text); done(); });
+    } else { fallback(text); done(); }
+  });
+});
+function fallback(t){ var ta=document.createElement('textarea'); ta.value=t; document.body.appendChild(ta); ta.select(); try{document.execCommand('copy')}catch(e){} document.body.removeChild(ta); }
+</script>
+</body>
+</html>
