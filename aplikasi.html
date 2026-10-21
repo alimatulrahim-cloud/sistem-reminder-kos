@@ -343,7 +343,7 @@ nav.tabs{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:min(4
     h+='<div class="list">'+sorted.map(function(r){
       var st=status(r), l=late(r);
       var p= st==='r'?'<span class="pill r">Red flag</span>':st==='a'?'<span class="pill a">Telat '+l+' hr</span>':st==='g'?'<span class="pill g">Hari ini</span>':'<span class="pill n">Aman</span>';
-      return '<button class="item" data-edit="'+r.no+'"><span class="kn">'+kk(r.no)+'</span><span class="it"><b>'+esc(r.nama)+'</b><small>Jatuh tempo '+fShort.format(nextDue(r))+' · '+rp(nominal(r))+'</small></span>'+p+'</button>';
+      return '<button class="item" data-edit="'+r.no+'"><span class="kn">'+kk(r.no)+'</span><span class="it"><b>Kamar '+kk(r.no)+' · '+esc(r.nama)+'</b><small>Jatuh tempo '+fShort.format(nextDue(r))+' · '+rp(nominal(r))+'</small></span>'+p+'</button>';
     }).join('')+'</div>';
     view.innerHTML=h;
   }
@@ -353,7 +353,7 @@ nav.tabs{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:min(4
     if(!S.log.length) h+='<div class="empty" style="margin-top:14px">Belum ada pembayaran. Ketuk + untuk mencatat.</div>';
     h+='<div class="list">'+S.log.map(function(e){
       var r=room(e.no);
-      return '<div class="item"><span class="kn">'+kk(e.no)+'</span><span class="it"><b>'+esc(r?r.nama:'Kamar '+kk(e.no))+'</b><small>Bayar '+fShort.format(parse(e.tgl))+' · periode '+fShort.format(parse(e.periode))+'</small></span><span class="pill g">'+rp(e.nominal)+'</span></div>';
+      return '<div class="item"><span class="kn">'+kk(e.no)+'</span><span class="it"><b>Kamar '+kk(e.no)+(r?' · '+esc(r.nama):'')+'</b><small>Bayar '+fShort.format(parse(e.tgl))+' · periode '+fShort.format(parse(e.periode))+'</small></span><span class="pill g">'+rp(e.nominal)+'</span></div>';
     }).join('')+'</div>';
     view.innerHTML=h;
   }
