@@ -20,3 +20,20 @@ Tiga pengaman dipakai bersamaan:
 1. **Kode unik nominal**: tiga digit terakhir transfer = nomor kamar.
 2. **Status dihitung rumus**: status dihitung dari log pembayaran, tidak diketik tangan.
 3. **Gerbang verifikasi harian**: tombol kirim WA baru muncul setelah mutasi hari ini dicek.
+
+## Backend dan deploy (Cloudflare)
+
+Aplikasi `aplikasi.html` bisa jalan sendiri (data di browser) atau lewat Worker `reminder-kos` yang menyimpan data di D1 supaya sama di semua perangkat.
+
+- `src/index.js`: API `GET/PUT /api/state`, dikunci kode akses.
+- `migrations/0001_init.sql`: tabel `rooms`, `payments`, `meta`.
+- `wrangler.toml`: Worker, aset statis, dan binding D1 `reminder-kos`.
+
+Deploy:
+
+```sh
+npm install
+npx wrangler d1 migrations apply reminder-kos --remote
+npx wrangler secret put APP_PASSCODE   # kode akses aplikasi
+npx wrangler deploy
+```

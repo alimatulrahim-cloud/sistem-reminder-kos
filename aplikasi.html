@@ -220,7 +220,42 @@ nav.tabs{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:min(4
   var S;
   try{ S=JSON.parse(localStorage.getItem(KEY)||'null'); }catch(e){ S=null; }
   if(!S||!S.rooms) S=seed();
-  function save(){ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} }
+  var CODE_KEY = 'reminderKos.code', online = false, pushT;
+  function getCode(){ try{ return localStorage.getItem(CODE_KEY)||''; }catch(e){ return ''; } }
+  function api(method, body){
+    return fetch('/api/state', {method:method, headers:{'authorization':'Bearer '+getCode(),'content-type':'application/json'}, body: body?JSON.stringify(body):undefined});
+  }
+  function push(){
+    if(!online) return;
+    clearTimeout(pushT);
+    pushT=setTimeout(function(){
+      api('PUT', S).then(function(r){ if(!r.ok) throw new Error(r.status); }).catch(function(){ toast('Gagal menyimpan ke server, data tetap aman di perangkat ini'); });
+    },400);
+  }
+  function save(){ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} push(); }
+  function connect(){
+    if(location.protocol.indexOf('http')!==0) return;
+    fetch('/api/health').then(function(r){ if(!r.ok) throw 0; return r.json(); }).then(function(){ return load(); }).catch(function(){});
+  }
+  function load(){
+    if(!getCode()){
+      var c=window.prompt('Masukkan kode akses Reminder Kos');
+      if(!c) return;
+      try{ localStorage.setItem(CODE_KEY, c.trim()); }catch(e){}
+    }
+    return api('GET').then(function(r){
+      if(r.status===401){ try{ localStorage.removeItem(CODE_KEY); }catch(e){} toast('Kode akses salah, muat ulang halaman untuk mencoba lagi'); return null; }
+      if(!r.ok) throw new Error(r.status);
+      return r.json();
+    }).then(function(d){
+      if(!d) return;
+      online=true;
+      if(d.empty){ push(); return; }
+      S={rooms:d.rooms,log:d.log,gate:d.gate,sample:d.sample};
+      try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){}
+      render();
+    }).catch(function(){ toast('Server tidak terjangkau, memakai data di perangkat ini'); });
+  }
 
   function nextDue(r){ return monthShift(parse(r.paidUntil),1,r.dueDay); }
   function late(r){ return diffDays(TODAY,nextDue(r)); }
@@ -364,7 +399,7 @@ nav.tabs{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:min(4
     h+='<div class="card"><b>2. Status dari log</b><p>Status lunas atau telat dihitung dari Log Bayar. Setiap transfer yang cocok dicatat lewat tombol +.</p></div>';
     h+='<div class="card"><b>3. Gerbang harian</b><p>Tombol Kirim Red Flag baru aktif setelah saklar "Mutasi hari ini sudah dicek" dinyalakan.</p></div>';
     h+='<div class="card r"><b>Rutinitas pagi</b><p>Buka mutasi, catat semua transfer, nyalakan saklar, lalu kirim red flag ke kamar yang muncul.</p></div>';
-    h+='<div class="card"><b>Penyimpanan data</b><p>Data tersimpan di browser perangkat ini saja. Catatan utama tetap Google Sheet di Drive.</p></div>';
+    h+='<div class="card"><b>Penyimpanan data</b><p>Saat dibuka lewat server, data disinkronkan ke database sehingga sama di semua perangkat. Tanpa server, data hanya tersimpan di browser ini.</p></div>';
     h+='<a class="btn prim" href="'+GUIDE_URL+'">Buka panduan lengkap + rumus Google Sheet</a>';
     h+='</div>';
     view.innerHTML=h;
@@ -448,6 +483,7 @@ nav.tabs{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:min(4
   document.addEventListener('keydown',function(e){ if(e.key==='Escape'){ var o=document.querySelector('.overlay'); if(o) o.remove(); } });
 
   render();
+  connect();
 })();
 </script>
 </body>

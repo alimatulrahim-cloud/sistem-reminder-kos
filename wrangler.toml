@@ -1,0 +1,17 @@
+name = "reminder-kos"
+main = "src/index.js"
+compatibility_date = "2026-10-01"
+
+[build]
+command = "bash scripts/build.sh"
+
+[assets]
+directory = "./public"
+binding = "ASSETS"
+run_worker_first = ["/api/*"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "reminder-kos"
+database_id = "2b5c7399-b137-4d64-af9f-96c161fdbd4b"
+migrations_dir = "migrations"
