@@ -1,5 +1,5 @@
 // Backend Reminder Kos: Worker + D1. Semua data ada di satu "state" milik satu pengelola kos.
-// Akses dikunci dengan kode akses (secret APP_PASSCODE) yang dikirim lewat header Authorization.
+// Login admin (secret ADMIN_USER dan ADMIN_PASS) menghasilkan token bertanda tangan HMAC (kunci: APP_PASSCODE).
 
 const json = (data, status = 200) =>
   new Response(JSON.stringify(data), {
@@ -14,11 +14,37 @@ function sameString(a, b) {
   return diff === 0;
 }
 
-function authorized(request, env) {
-  const secret = env.APP_PASSCODE;
-  if (!secret) return false;
-  const given = (request.headers.get('authorization') || '').replace(/^Bearer\s+/i, '');
-  return sameString(given, secret);
+const enc = new TextEncoder();
+const b64url = (buf) => btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+const TOKEN_TTL = 30 * 24 * 3600; // detik
+
+async function sign(env, payload) {
+  const key = await crypto.subtle.importKey('raw', enc.encode(env.APP_PASSCODE), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  return b64url(await crypto.subtle.sign('HMAC', key, enc.encode(payload)));
+}
+
+async function makeToken(env) {
+  const payload = String(Math.floor(Date.now() / 1000) + TOKEN_TTL);
+  return payload + '.' + (await sign(env, payload));
+}
+
+async function authorized(request, env) {
+  if (!env.APP_PASSCODE) return false;
+  const [exp, sig] = (request.headers.get('authorization') || '').replace(/^Bearer\s+/i, '').split('.');
+  if (!exp || !sig || !(Number(exp) > Date.now() / 1000)) return false;
+  return sameString(sig, await sign(env, exp));
+}
+
+async function login(request, env) {
+  let body;
+  try { body = await request.json(); } catch { return json({ error: 'JSON tidak valid' }, 400); }
+  const u = String(body.username || ''), p = String(body.password || '');
+  const ok = sameString(u, env.ADMIN_USER || '') && sameString(p, env.ADMIN_PASS || '') && !!env.ADMIN_USER && !!env.ADMIN_PASS;
+  if (!ok) {
+    await new Promise((r) => setTimeout(r, 800)); // perlambat tebakan berulang
+    return json({ error: 'Username atau password salah' }, 401);
+  }
+  return json({ token: await makeToken(env) });
 }
 
 async function readState(env) {
@@ -78,7 +104,8 @@ export default {
     if (url.pathname === '/api/health') return json({ ok: true });
 
     if (!env.APP_PASSCODE) return json({ error: 'APP_PASSCODE belum diatur di Worker' }, 503);
-    if (!authorized(request, env)) return json({ error: 'Kode akses salah' }, 401);
+    if (url.pathname === '/api/login' && request.method === 'POST') return login(request, env);
+    if (!(await authorized(request, env))) return json({ error: 'Belum login' }, 401);
 
     if (url.pathname === '/api/state') {
       if (request.method === 'GET') return json(await readState(env));

@@ -149,6 +149,13 @@ nav.tabs{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:min(4
 .btn.ghost{background:none;color:var(--muted)}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(150px + env(safe-area-inset-bottom, 0px));background:var(--ink);color:var(--screen);border-radius:12px;padding:10px 12px 10px 14px;font-weight:700;font-size:13.5px;display:flex;align-items:center;gap:12px;z-index:30;max-width:calc(100% - 32px)}
 .toast button{border:0;background:none;color:var(--green);font-weight:900}
+.login{position:fixed;inset:0;z-index:50;background:var(--outer);display:grid;place-items:center;padding:16px}
+.login form{width:min(380px,100%);background:var(--screen);border-radius:22px;padding:24px 20px;display:flex;flex-direction:column;gap:12px}
+.login h1{margin:0;font-size:26px;font-weight:900;color:var(--green-deep)}
+.login p{margin:0;color:var(--muted);font-weight:600}
+.login label{display:flex;flex-direction:column;gap:4px;font-size:12.5px;font-weight:800;color:var(--muted)}
+.login input{border:1.5px solid var(--line);background:var(--mint-2);border-radius:10px;padding:11px 12px;font-size:15px;font-weight:700;width:100%}
+.login .err{color:var(--red);font-weight:800;font-size:13px;min-height:1.2em}
 @media (prefers-reduced-motion: reduce){ *{transition:none!important;scroll-behavior:auto!important} }
 </style>
 </head>
@@ -220,43 +227,58 @@ nav.tabs{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:min(4
   var S;
   try{ S=JSON.parse(localStorage.getItem(KEY)||'null'); }catch(e){ S=null; }
   if(!S||!S.rooms) S=seed();
-  var CODE_KEY = 'reminderKos.code', online = false, pushT;
-  function getCode(){ try{ return localStorage.getItem(CODE_KEY)||''; }catch(e){ return ''; } }
+  var TOKEN_KEY = 'reminderKos.token', online = false, pushT;
+  function getToken(){ try{ return localStorage.getItem(TOKEN_KEY)||''; }catch(e){ return ''; } }
+  function setToken(t){ try{ if(t) localStorage.setItem(TOKEN_KEY,t); else localStorage.removeItem(TOKEN_KEY); }catch(e){} }
   function api(method, body){
-    return fetch('/api/state', {method:method, headers:{'authorization':'Bearer '+getCode(),'content-type':'application/json'}, body: body?JSON.stringify(body):undefined});
+    return fetch('/api/state', {method:method, headers:{'authorization':'Bearer '+getToken(),'content-type':'application/json'}, body: body?JSON.stringify(body):undefined});
   }
   function push(){
     if(!online) return;
     clearTimeout(pushT);
     pushT=setTimeout(function(){
-      api('PUT', S).then(function(r){ if(!r.ok) throw new Error(r.status); }).catch(function(){ toast('Gagal menyimpan ke server, data tetap aman di perangkat ini'); });
+      api('PUT', S).then(function(r){
+        if(r.status===401){ online=false; setToken(''); showLogin(); return; }
+        if(!r.ok) throw new Error(r.status);
+      }).catch(function(){ toast('Gagal menyimpan ke server, data tetap aman di perangkat ini'); });
     },400);
   }
   function save(){ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} push(); }
+  function showLogin(msg){
+    if(document.getElementById('login')) return;
+    var o=document.createElement('div'); o.className='login'; o.id='login';
+    o.innerHTML='<form><h1>Reminder Kos</h1><p>Masuk untuk membuka data penghuni.</p><label for="lUser">Username<input id="lUser" autocomplete="username" autocapitalize="none" required></label><label for="lPass">Password<input id="lPass" type="password" autocomplete="current-password" required></label><div class="err" id="lErr" role="alert">'+esc(msg||'')+'</div><button class="btn prim" type="submit" style="justify-content:center;padding:12px">Masuk</button></form>';
+    document.body.appendChild(o);
+    var f=o.querySelector('form'), err=o.querySelector('#lErr');
+    o.querySelector('#lUser').focus();
+    f.onsubmit=function(e){
+      e.preventDefault(); err.textContent='';
+      fetch('/api/login',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({username:o.querySelector('#lUser').value.trim(),password:o.querySelector('#lPass').value})})
+        .then(function(r){ return r.json().then(function(d){ return {ok:r.ok,d:d}; }); })
+        .then(function(x){
+          if(!x.ok){ err.textContent=x.d.error||'Gagal masuk'; return; }
+          setToken(x.d.token); o.remove(); load();
+        }).catch(function(){ err.textContent='Server tidak terjangkau'; });
+    };
+  }
   function connect(){
     if(location.protocol.indexOf('http')!==0) return;
-    fetch('/api/health').then(function(r){ if(!r.ok) throw 0; return r.json(); }).then(function(){ return load(); }).catch(function(){});
+    fetch('/api/health').then(function(r){ if(!r.ok) throw 0; return r.json(); }).then(function(){ if(getToken()) load(); else showLogin(); }).catch(function(){});
   }
   function load(){
-    if(!getCode()){
-      var c=window.prompt('Masukkan kode akses Reminder Kos');
-      if(!c) return;
-      try{ localStorage.setItem(CODE_KEY, c.trim()); }catch(e){}
-    }
     return api('GET').then(function(r){
-      if(r.status===401){ try{ localStorage.removeItem(CODE_KEY); }catch(e){} toast('Kode akses salah, muat ulang halaman untuk mencoba lagi'); return null; }
+      if(r.status===401){ setToken(''); showLogin('Sesi habis, silakan masuk lagi'); return null; }
       if(!r.ok) throw new Error(r.status);
       return r.json();
     }).then(function(d){
       if(!d) return;
       online=true;
-      if(d.empty){ push(); return; }
+      if(d.empty){ push(); render(); return; }
       S={rooms:d.rooms,log:d.log,gate:d.gate,sample:d.sample};
       try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){}
       render();
     }).catch(function(){ toast('Server tidak terjangkau, memakai data di perangkat ini'); });
   }
-
   function nextDue(r){ return monthShift(parse(r.paidUntil),1,r.dueDay); }
   function late(r){ return diffDays(TODAY,nextDue(r)); }
   function status(r){ var l=late(r); if(l>=3) return 'r'; if(l>=1) return 'a'; if(l===0) return 'g'; return 'n'; }
@@ -401,6 +423,7 @@ nav.tabs{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:min(4
     h+='<div class="card r"><b>Rutinitas pagi</b><p>Buka mutasi, catat semua transfer, nyalakan saklar, lalu kirim red flag ke kamar yang muncul.</p></div>';
     h+='<div class="card"><b>Penyimpanan data</b><p>Saat dibuka lewat server, data disinkronkan ke database sehingga sama di semua perangkat. Tanpa server, data hanya tersimpan di browser ini.</p></div>';
     h+='<a class="btn prim" href="'+GUIDE_URL+'">Buka panduan lengkap + rumus Google Sheet</a>';
+    if(online) h+='<button class="btn ok" id="logout" type="button">Keluar</button>';
     h+='</div>';
     view.innerHTML=h;
   }
@@ -474,6 +497,7 @@ nav.tabs{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:min(4
     if(e.target.closest('#gate')){ S.gate = gateOn()?'':ymd(TODAY); save(); render(); return; }
     if(e.target.closest('#expand')){ expanded=!expanded; render(); return; }
     if(e.target.closest('#fab')){ openPay(); return; }
+    if(e.target.closest('#logout')){ setToken(''); online=false; showLogin(); return; }
     if((t=e.target.closest('#reset'))){
       if(t.dataset.armed){ S=seed(); save(); render(); toast('Data contoh dipulihkan'); }
       else { t.dataset.armed='1'; t.textContent='Ketuk lagi untuk hapus semua data'; setTimeout(function(){ if(t.isConnected){ delete t.dataset.armed; t.textContent='Reset ke data contoh'; } },3000); }
